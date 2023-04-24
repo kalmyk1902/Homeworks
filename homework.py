@@ -1,4 +1,5 @@
 import json
+import multiprocessing as mp
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -36,17 +37,18 @@ def homework(LOGIN: str, PASSWORD: str):
         dnevnik.click()
         wait.until(ec.visibility_of_all_elements_located((By.CSS_SELECTOR, 'td.lesson')))
 
-        if week == 'Saturday' or week == 'Sunday':
+        search = 'quarter' if week != 'Saturday' and week != 'Sunday' else 'week'
+        if search == 'week':
             next = driver.find_element(By.XPATH, "//a[@class='next']")
             next.click()
             wait.until(ec.invisibility_of_element_located((By.CSS_SELECTOR, 'td.lesson')))
-            entries = driver.execute_script('return window.performance.getEntries()')
-            for entry in reversed(entries):
-                if entry['initiatorType'] == 'xmlhttprequest' and 'week' in entry['name']:
-                    rurl = entry['name']
-                    break
-            driver.get(rurl)
-            driver.implicitly_wait(10)
+        entries = driver.execute_script('return window.performance.getEntries()')
+        for entry in reversed(entries):
+            if entry['initiatorType'] == 'xmlhttprequest' and search in entry['name']:
+                rurl = entry['name']
+                break
+        driver.get(rurl)
+        driver.implicitly_wait(10)
 
         with open('days.json', 'r', encoding='utf-8') as f:
             weekdays = json.load(f)
@@ -74,3 +76,4 @@ def homework(LOGIN: str, PASSWORD: str):
 
     except WebDriverException:
         return 'НЕТ ИНТЕРНЕТА!'
+    

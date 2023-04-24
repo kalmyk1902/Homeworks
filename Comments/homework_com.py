@@ -45,17 +45,18 @@ def homework(LOGIN: str, PASSWORD: str):
         dnevnik.click() # нажимаем на нее
         wait.until(ec.visibility_of_all_elements_located((By.CSS_SELECTOR, 'td.lesson'))) # ждем загрузки всех уроков в дневнике
 
-        if week == 'Saturday' or week == 'Sunday': # если сегодня суббота или воскресенье...
+        search = 'quarter' if week != 'Saturday' and week != 'Sunday' else 'week' # настройка поиска запросов в зависимости от сегодняшнего дня
+        if search == 'week': # если сегодня суббота или воскресенье...
             next = driver.find_element(By.XPATH, "//a[@class='next']") # ищем кнопку перехода на след. страницу
             next.click() # нажимаем на нее
             wait.until(ec.invisibility_of_element_located((By.CSS_SELECTOR, 'td.lesson'))) # ждем ее загрузки (исчезновения старых элементов)
-            entries = driver.execute_script('return window.performance.getEntries()') # при помощи JavaScript получаем все полученные запросы
-            for entry in reversed(entries): # проходимся по всем запросам
-                if entry['initiatorType'] == 'xmlhttprequest' and 'week' in entry['name']: # если находим XHR-запрос в котором есть ссылка новой страницы...
-                    rurl = entry['name'] # сохранаяем ее
-                    break # выходим из цикла
-            driver.get(rurl) # переходим по ссылке (чтобы не видеть лишних элементов с прошлой страницы)
-            driver.implicitly_wait(10) # ждем ее загрузки
+        entries = driver.execute_script('return window.performance.getEntries()') # при помощи JavaScript получаем все полученные запросы
+        for entry in reversed(entries): # проходимся по всем запросам
+            if entry['initiatorType'] == 'xmlhttprequest' and search in entry['name']: # если находим XHR-запрос в котором есть ссылка новой страницы...
+                rurl = entry['name'] # сохранаяем ее
+                break # выходим из цикла
+        driver.get(rurl) # переходим по ссылке (чтобы не видеть лишних элементов с прошлой страницы)
+        driver.implicitly_wait(10) # ждем ее загрузки
 
         with open('days.json', 'r', encoding='utf-8') as f: # открываем JSON-файл с настройками поиска в зависимости от сегодняшнего дня
             weekdays = json.load(f) # загружаем оттуда данные
