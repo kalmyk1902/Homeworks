@@ -8,7 +8,7 @@
 # импортируем нужные библиотеки
 import threading
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 from datetime import datetime
 from homework import homework
 
@@ -32,10 +32,6 @@ root = tk.Tk() # объявляем корневую переменную окн
 root.geometry('600x700') # задаем размер программы
 root.iconbitmap('etc/icon.ico') # задаем иконку
 root.title('Homeworks') # задаем название программе
-
-# предупреждаем о медленном поиске (это будет удалено в следующих версиях программы)
-messagebox.showwarning('ПРЕДУПРЕЖДЕНИЕ!', """Данная версия программы долго ищет Д/З.
-Если вам дорого время, используйте сайт вместо программы до её обновления""")
 
 # настраиваем интерфейс программы
 title = ttk.Label(root, text='Получить Д/З', font=('Arial Bold', '15', 'bold')) # имя программы

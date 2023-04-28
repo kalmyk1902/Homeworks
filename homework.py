@@ -1,12 +1,13 @@
+import os
 import json
-import multiprocessing as mp
+from bs4 import BeautifulSoup
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
-from selenium.common.exceptions import NoSuchElementException, WebDriverException
+from selenium.common.exceptions import WebDriverException
 
 def homework(LOGIN: str, PASSWORD: str):
     try:
@@ -54,26 +55,36 @@ def homework(LOGIN: str, PASSWORD: str):
             weekdays = json.load(f)
             weekday = weekdays[week]
 
-        final = ''
         tables = driver.find_elements(By.CSS_SELECTOR, 'div.db_day')
-        for table in tables:
-            if weekday in table.text:
-                lessons = table.find_elements(By.CSS_SELECTOR, 'td.lesson')
-                infos = table.find_elements(By.CSS_SELECTOR, 'td.ht')
-                works = []
-                for info in infos:
-                    try:
-                        works.append(info.find_element(By.CSS_SELECTOR, 'div.ht-text').text)
-                    except NoSuchElementException:
-                        works.append(' ')
-                for lesson, work in zip(lessons, works):
-                    final += f'{lesson.text} {work}\n'
-                final = final[:-2]
+        for t in tables:
+            if weekday in t.text:
+                table = t
                 break
 
+        with open('CACHE.HTML', 'w', encoding='utf-8') as f:
+            f.write(table.get_attribute('innerHTML'))
+           
         driver.quit()
+        final = ''
+        lessons, works = [], []
+
+        with open('CACHE.HTML', 'r', encoding='utf-8') as f:
+            soup = BeautifulSoup(f, 'html.parser')
+            LESSONS = soup.select('td.lesson')
+            for LESSON in LESSONS:
+                LESSON = LESSON.text.replace('\n', '').replace('.', '. ', 1)
+                lessons.append(LESSON)
+
+            WORKS = soup.select('td.ht')
+            for WORK in WORKS:
+                WORK_SRCH = WORK.find('div', class_='ht-text')
+                works.append(WORK_SRCH.text.strip() if WORK_SRCH is not None else ' ')
+
+        for lesson, work in zip(lessons, works):
+            final += f'{lesson} – {work}\n'
+
+        os.remove('CACHE.HTML')
         return final
 
     except WebDriverException:
         return 'НЕТ ИНТЕРНЕТА!'
-    

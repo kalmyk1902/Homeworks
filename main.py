@@ -1,6 +1,6 @@
 import threading
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 from datetime import datetime
 from homework import homework
 
@@ -18,14 +18,12 @@ def search():
     message.configure(text='Ищем дз...')
     threading.Thread(target=func).start()
 
+
 root = tk.Tk()
 
 root.geometry('600x700')
 root.iconbitmap('etc/icon.ico')
 root.title('Homeworks')
-
-messagebox.showwarning('ПРЕДУПРЕЖДЕНИЕ!', """Данная версия программы долго ищет Д/З.
-Если вам дорого время, используйте сайт вместо программы до её обновления""")
 
 title = ttk.Label(root, text='Получить Д/З', font=('Arial Bold', '15', 'bold'))
 title.place(relx=0.36, rely=0.13)

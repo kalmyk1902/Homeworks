@@ -6,7 +6,9 @@
 
 """
 # импортируем нужные библиотеки
+import os
 import json
+from bs4 import BeautifulSoup
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -54,7 +56,7 @@ def homework(LOGIN: str, PASSWORD: str):
         for entry in reversed(entries): # проходимся по всем запросам
             if entry['initiatorType'] == 'xmlhttprequest' and search in entry['name']: # если находим XHR-запрос в котором есть ссылка новой страницы...
                 rurl = entry['name'] # сохранаяем ее
-                break # выходим из цикла
+                break # выходим из цикла поиска
         driver.get(rurl) # переходим по ссылке (чтобы не видеть лишних элементов с прошлой страницы)
         driver.implicitly_wait(10) # ждем ее загрузки
 
@@ -62,25 +64,36 @@ def homework(LOGIN: str, PASSWORD: str):
             weekdays = json.load(f) # загружаем оттуда данные
             weekday = weekdays[week] # задаем переменную для поиска домашки по нужному дню
 
-        final = '' # объявляем переменную для выдачи резульата
-        tables = driver.find_elements(By.CSS_SELECTOR, 'div.db_day') # ищем таблицы для каждого дня
-        for table in tables: # проходимся по ним
-            if weekday in table.text: # если находим таблицу соответствущую нужному дню
-                lessons = table.find_elements(By.CSS_SELECTOR, 'td.lesson') # ищем названия предметов
-                infos = table.find_elements(By.CSS_SELECTOR, 'td.ht') # ищем элементы с записанной домашкой
-                works = [] # создаем пустой список для домашки
-                for info in infos: # проходимся по элементам
-                    try: # пробуем сделать следующее
-                        works.append(info.find_element(By.CSS_SELECTOR, 'div.ht-text').text) # ищем текст домашки и вписываем в список
-                    except NoSuchElementException: # если текст отсутсвует...
-                        works.append(' ') # вписываем пустой текст
-                for lesson, work in zip(lessons, works): # для каждого имени предмета и соотвествующей ему домашки...
-                    final += f'{lesson.text} {work}\n' # записываем в результат имя предмета + домашку + пробел для следующего предмета
-                final = final[:-2] # последний пробел убираем
+        tables = driver.find_elements(By.CSS_SELECTOR, 'div.db_day') # ищем все таблицы с уроками
+        for t in tables: # проходимся по каждой таблице
+            if weekday in t.text: # если находим нужную таблицу
+                table = t # объявляем переменную с ней
                 break # выходим из цикла поиска
 
-        driver.quit() # выходим из браузера
-        return final # выдаем результат поиска в программу
+        with open('CACHE.HTML', 'w', encoding='utf-8') as f: # создаем файл с данными с сайта
+            f.write(table.get_attribute('innerHTML')) # записываем всю таблицу туда
+           
+        driver.quit() # закрываем браузер
+        final = '' # объявляем финальную строку, присваивая пустое значение
+        lessons, works = [], [] # объявляем списки для результатов анализа таблицы
+
+        with open('CACHE.HTML', 'r', encoding='utf-8') as f: # открываем ранее сохраненный файл
+            soup = BeautifulSoup(f, 'html.parser') # создаем объект анализа таблицы
+            LESSONS = soup.select('td.lesson') # ищем все названия предметов
+            for LESSON in LESSONS: # проходимся по каждому элементу
+                LESSON = LESSON.text.replace('\n', '').replace('.', '. ', 1) # убираем все переходы строк и добавляем пробел после номера предмета
+                lessons.append(LESSON) # добавляем предмет в список
+
+            WORKS = soup.select('td.ht') # ищем все записи домашнего задания
+            for WORK in WORKS: # проходимся по каждому элементу
+                WORK_SRCH = WORK.find('div', class_='ht-text') # ищем текст в элементе
+                works.append(WORK_SRCH.text.strip() if WORK_SRCH is not None else ' ') # добавляем текст Д/З в список если текст есть, иначе добавляем пустую строку
+
+        for lesson, work in zip(lessons, works): # берем 2 списка и берем по одному элементу в них
+            final += f'{lesson} – {work}\n' # и добавляем их в финальную строку
+
+        os.remove('CACHE.HTML') # удаляем ранее сохраненный файл
+        return final # выдаем Д/З в программу
 
     except WebDriverException: # при отсутствии интернета...
         return 'НЕТ ИНТЕРНЕТА!' # выдаем сообщение об этом
